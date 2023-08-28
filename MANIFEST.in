@@ -1,0 +1,18 @@
+include MANIFEST.in
+include requirements.txt
+include *.json
+include *.md
+include *.py
+include *.txt
+recursive-include notibell *.css
+recursive-include notibell *.csv
+recursive-include notibell *.html
+recursive-include notibell *.ico
+recursive-include notibell *.js
+recursive-include notibell *.json
+recursive-include notibell *.md
+recursive-include notibell *.png
+recursive-include notibell *.py
+recursive-include notibell *.svg
+recursive-include notibell *.txt
+recursive-exclude notibell *.pyc

@@ -28,6 +28,13 @@ app_license = "MIT"
 # include js in page
 # page_js = {"page" : "public/js/file.js"}
 
+doc_events={
+    "Workflow Action":{
+        "validate":"notibell.overrides.custom_workflow_action.validate"
+    }
+}
+
+
 # include js in doctype views
 # doctype_js = {"doctype" : "public/js/doctype.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}

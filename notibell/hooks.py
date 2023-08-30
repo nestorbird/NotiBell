@@ -216,6 +216,21 @@ doc_events={
 #	}
 # ]
 
+
+fixtures = [
+    {
+        "dt": "Custom Field",
+        "filters": {
+            "name": [
+                "in",
+                [
+                   "Workflow Action-discard"
+                ]
+            ]
+        }
+    },
+]
+
 # Authentication and authorization
 # --------------------------------
 

@@ -26,10 +26,9 @@ def action_list():
 def permitted_workflow_action():
     try:
         action_list = frappe.db.get_all("Workflow Action", 
-        fields=["reference_doctype", "reference_name", "modified_by"],
-        filters=[{"status":"Open"}],
+        fields=["reference_doctype", "reference_name", "modified_by", "discard"],
+        filters=[{"status":"Open"},{"discard": "No"}],
         limit_page_length = "*")
-
         user = frappe.session.user
         permitted_action = []
         
@@ -72,7 +71,7 @@ def permitted_workflow_action():
                     `tabWorkflow` WF ON WF.name = WT.parent
                 WHERE
                     WF.is_active = 1
-                    AND WF.name = "{entry["reference_doctype"]}"
+                    AND WF.document_type = "{entry["reference_doctype"]}"
                     AND WT.allowed in ({', '.join(f'"{element}"' for element in permitted_action[j]["roles"])})
                     AND WT.state = "{doc_entry.workflow_state}"; """
 

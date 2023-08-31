@@ -26,7 +26,7 @@ def action_list():
 def permitted_workflow_action():
     try:
         action_list = frappe.db.get_all("Workflow Action", 
-        fields=["reference_doctype", "reference_name", "modified_by", "discard"],
+        fields=["name", "reference_doctype", "reference_name", "modified_by", "discard"],
         filters=[{"status":"Open"},{"discard": "No"}],
         limit_page_length = "*")
         user = frappe.session.user

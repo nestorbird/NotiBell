@@ -11,8 +11,8 @@ from notibell.overrides.workflow_action import update_completed_workflow_actions
 workflow_action.update_completed_workflow_actions_using_role=update_completed_workflow_actions_using_role_custom
 
 # overriding permission query
-from notibell.overrides.workflow_action import get_permission_query_conditions
-workflow_action.get_permission_query_conditions=get_permission_query_conditions
+# from notibell.overrides.workflow_action import get_permission_query_conditions
+# workflow_action.get_permission_query_conditions=get_permission_query_conditions
 
 
 # Customized Watcherp Functions

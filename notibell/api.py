@@ -40,6 +40,9 @@ def permitted_workflow_action():
             if not doc_entry.has_permission("write"):
                 continue
 
+            if doc_entry.docstatus == 1 or doc_entry.docstatus == 2:
+                continue
+
             permitted_action.append(action_list[i])
             j = len(permitted_action) - 1
             permitted_action[j]["current_state"] = doc_entry.workflow_state

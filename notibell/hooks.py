@@ -224,11 +224,31 @@ fixtures = [
             "name": [
                 "in",
                 [
-                   "Workflow Action-discard"
+                   "Workflow Action-discard",
+                    "Employee Checkin-custom_face_detection",
+                    "Employee Checkin-custom_face_status",
+                    "Employee Checkin-custom_latitude",
+                    "Employee Checkin-custom_longitude",
+                    "Employee Checkin-custom_location_status",
+                    "Employee Checkin-custom_section_break_uj8ct",
+                    "Employee Checkin-custom_column_break_hc88f",
+                    "Employee-custom_face_registration",
+                    "Employee-custom_face_registration_data"
                 ]
             ]
         }
     },
+    {
+        "dt": "Custom DocPerm",
+        "filters": {
+            "name": [
+                "in",
+                [
+                    "6a3d8081dd"
+                ]
+            ]
+        }
+    }
 ]
 
 # Authentication and authorization

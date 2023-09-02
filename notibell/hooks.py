@@ -31,6 +31,12 @@ app_license = "MIT"
 doc_events={
     "Workflow Action":{
         "validate":"notibell.overrides.custom_workflow_action.validate"
+    },
+    "Employee": {
+        "validate":"notibell.customizations.employee.validate"
+    },
+    "Employee Checkin": {
+        "validate":"notibell.customizations.employee_checkin.validate"
     }
 }
 

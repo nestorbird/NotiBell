@@ -1,0 +1,55 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-08-28 18:00:02.889376",
+ "default_view": "List",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enable_app_notifications",
+  "url",
+  "app_secret_key"
+ ],
+ "fields": [
+  {
+   "default": "0",
+   "fieldname": "enable_app_notifications",
+   "fieldtype": "Check",
+   "label": "Enable App Notifications"
+  },
+  {
+   "fieldname": "url",
+   "fieldtype": "Data",
+   "label": "Url"
+  },
+  {
+   "fieldname": "app_secret_key",
+   "fieldtype": "Small Text",
+   "label": "App Secret Key"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2023-08-28 18:00:02.889376",
+ "modified_by": "Administrator",
+ "module": "NotiBell",
+ "name": "NotiBell Notifications",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

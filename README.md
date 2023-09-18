@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 
 ## NotiBell
 
@@ -8,4 +8,4 @@ This app shows push notification from ERPNext and Frappe on phone with Workflow 
 #### License
 
 MIT
->>>>>>> development
+

@@ -1,11 +1,24 @@
+# NotiBell
+#### _Frappe App for Push Notification, WorkFlow Actions and Check-In with GeoFencing along with Face Recognition through mobile app_
 
+NotiBell is a Custom App build over Frappe that enables user to install NotiBell moile app [Play Store](https://play.google.com/store/apps/details?id=com.nb.notibell) and [App Store](https://testflight.apple.com/join/MtvAjKlz)
 
-## NotiBell
+| Supports Frappe Versions | Depedency |
+|-|-|
+|v13 | None|
+|v14| HRMS |
 
-NotiBell Frappe app enables the user to use NotiBell mobile app for Android and IOS.
-This app shows push notification from ERPNext and Frappe on phone with Workflow action through mobile app.
+### Pre-Requsites
+- *Workflow* _ONLY_
 
-#### License
+### How to Install and Setup
+```
+bench get-app https://github.com/nestorbird/NotiBell-Frappe.git --branch main
+bench --site <site_name> install-app notibell
+```
 
-MIT
-
+### Features
+- Sending Push notification to Mobile App
+- Action on Entries according to Workflow depending on Role of logged in User.
+- Face Recongnition for Check-In with approval
+- Geo Fencing for Check-In with approval

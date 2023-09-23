@@ -43,7 +43,7 @@ def push_notifications(role_name, reference_doctype, reference):
             device_token=frappe.db.get_value("Push Notifications",{"user":user.name},"device_token")
             # device_tokens_list = frappe.db.get_list("Push Notification", filters={"user": user.name}, fields=["device_token"], pluck='device_token')
             # for device_token in device_tokens_list:
-            title = "New Workflow Action"
+            title = f"New {reference_doctype}"
             body = f"A new {reference_doctype} '{reference}' requires your approval."
             key = "workflow_action"
             value = {

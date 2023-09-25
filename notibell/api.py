@@ -29,13 +29,13 @@ def permitted_workflow_action():
         fields=["name", "reference_doctype", "reference_name", "modified_by", "discard"],
         filters=[{"status":"Open"},{"discard": "No"}],
         limit_page_length = "*")
-        # user = frappe.session.user
+        user = frappe.session.user
         permitted_action = []
         
         i = -1
         for entry in action_list:
             i = i + 1
-            use = entry["modified_by"] 
+            
             doc_entry = frappe.get_doc(entry["reference_doctype"], entry["reference_name"])
             
             if not doc_entry.has_permission("write"):
@@ -62,7 +62,11 @@ def permitted_workflow_action():
             for dt in user_details:
                 role.add(dt["role"])
             permitted_action[j]["roles"] = role
-            permitted_action[j]["full_name"] = user_details[0]["full_name"]
+
+            mod_user = frappe.get_doc("User", entry["modified_by"]).full_name
+            permitted_action[j]["full_name"] = mod_user
+
+            permitted_action[j]["logged_user"] = user_details[0]["full_name"]
 
             workflow_trasition_qry = f"""SELECT
                     WT.next_state as next_state,

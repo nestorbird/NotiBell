@@ -29,7 +29,7 @@ def permitted_workflow_action():
         fields=["name", "reference_doctype", "reference_name", "modified_by", "discard"],
         filters=[{"status":"Open"},{"discard": "No"}],
         limit_page_length = "*")
-        # user = frappe.session.user
+        user = frappe.session.user
         permitted_action = []
         
         i = -1

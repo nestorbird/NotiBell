@@ -44,6 +44,9 @@ def permitted_workflow_action():
             if doc_entry.docstatus == 1 or doc_entry.docstatus == 2:
                 continue
 
+            if entry["reference_doctype"] == "Leave Application" and not doc_entry.leave_approver == user:
+                continue
+
             permitted_action.append(action_list[i])
             j = len(permitted_action) - 1
             permitted_action[j]["current_state"] = doc_entry.workflow_state

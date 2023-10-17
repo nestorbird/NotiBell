@@ -17,6 +17,8 @@ bench get-app https://github.com/nestorbird/NotiBell-Frappe.git --branch main
 bench --site <site_name> install-app notibell
 ```
 
+For more detailed information on installation and workflow setup - [Click here](https://wiki.nestorbird.com/wiki/installation-guide-notibell)
+
 ### Features
 - Sending Push notification to Mobile App
 - Action on Entries according to Workflow depending on Role of logged in User.

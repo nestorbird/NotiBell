@@ -22,3 +22,13 @@ bench --site <site_name> install-app notibell
 - Action on Entries according to Workflow depending on Role of logged in User.
 - Face Recongnition for Check-In with approval
 - Geo Fencing for Check-In with approval
+
+## Contributing
+- [Issue Guidelines](https://github.com/frappe/erpnext/wiki/Issue-Guidelines)
+- [Pull Request Requirements](https://github.com/frappe/erpnext/wiki/Contribution-Guidelines)
+
+## License
+[GNU General Public License (v3)]
+
+## Support
+For support please visit or click [here](https://wiki.nestorbird.com/wiki/support)

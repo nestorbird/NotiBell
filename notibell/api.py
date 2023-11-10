@@ -94,3 +94,120 @@ def permitted_workflow_action():
         return permitted_action
     except Exception as e:
         print(e)
+
+
+
+from frappe.website.utils import is_signup_disabled
+from datetime import timedelta
+from urllib import response
+import frappe
+import frappe.defaults
+import frappe.permissions
+import frappe.share
+from frappe import STANDARD_USERS, _, msgprint, throw
+from frappe.core.doctype.user_type.user_type import user_linked_with_permission_on_doctype
+from frappe.desk.doctype.notification_settings.notification_settings import (
+	create_notification_settings,
+	toggle_notifications,
+)
+from frappe.desk.notifications import clear_notifications
+from frappe.model.document import Document
+from frappe.query_builder import DocType
+from frappe.rate_limiter import rate_limit
+from frappe.utils import (
+	cint,
+	escape_html,
+	flt,
+	format_datetime,
+	get_formatted_email,
+	get_system_timezone,
+	has_gravatar,
+	now_datetime,
+	today,
+)
+from frappe.utils.deprecations import deprecated
+from frappe.utils.password import check_password, get_password_reset_limit
+from frappe.utils.password import update_password as _update_password
+from frappe.utils.user import get_system_managers
+from frappe.utils import escape_html, random_string
+import frappe
+from frappe import _
+from frappe.utils import escape_html, random_string
+
+@frappe.whitelist(allow_guest=True)
+def sign_up(email, full_name, first_name, last_name, gender, birth_date,phone_no=None, new_password=None):
+    print(email, full_name, first_name, last_name, gender, birth_date)
+    if is_signup_disabled():
+        frappe.throw(_("Sign Up is disabled"), title=_("Not Allowed"))
+
+    user = frappe.db.get("User", {"email": email})
+    user = frappe.db.sql("""SELECT COUNT(*) from `tabUser` WHERE email = '{email}' OR mobile_no = '{mobile_no}'""".format(
+    email = email,
+    mobile_no = phone_no
+    ))
+    if user[0][0] > 0:
+        return {
+            'status_code': 200,
+            'message': 'User already exist with this email or phone number'
+            }
+    else:
+        if frappe.db.get_creation_count("User", 60) > 300:
+            frappe.respond_as_web_page(
+                _("Temporarily Disabled"),
+                _(
+                    "Too many users signed up recently, so the registration is disabled. Please try back in an hour"
+                ),
+                http_status_code=429,
+            )
+
+        user = frappe.get_doc(
+            {
+                "doctype": "User",
+                "email": email,
+                "first_name": first_name,
+                "last_name": last_name,
+                "full_name": escape_html(full_name),
+                "gender": gender,
+                "birth_date": birth_date,
+                "enabled": 1,
+                "new_password": new_password if new_password else random_string(10),
+                "user_type": "System User",
+                "role_profile_name": "notibell role profile"
+            }
+        )
+
+        user.flags.ignore_permissions = True
+        user.flags.ignore_password_policy = True
+        user.insert()
+        create_employe(user, doc=None)
+        default_role = frappe.db.get_single_value("Portal Settings", "default_role")
+        if default_role:
+            user.add_roles(default_role)
+
+       
+        if user.flags.email_sent:
+            return {
+        'status_code': 200,
+        'message': 'User registered successfully'
+    }
+        else:
+            return 2, _("Please ask your administrator to verify your sign-up")
+
+
+def create_employe(user, doc):
+    print(user)
+    employee = frappe.new_doc('Employee')
+
+    employee.full_name = user.full_name
+    employee.first_name = user.first_name
+    employee.last_name = user.last_name
+    employee.date_of_birth = user.birth_date
+    employee.gender = user.gender
+    employee.date_of_joining = frappe.utils.now_datetime()
+    employee.user_id = user.email
+
+    employee.flags.ignore_mandatory = True
+    employee.insert(ignore_permissions=True)
+
+
+

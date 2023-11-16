@@ -10,8 +10,9 @@
  "field_order": [
   "otp",
   "email",
-  "phone",
-  "time"
+  "phone_no",
+  "time",
+  "type"
  ],
  "fields": [
   {
@@ -25,19 +26,26 @@
    "label": "Email "
   },
   {
-   "fieldname": "phone",
-   "fieldtype": "Data",
-   "label": "Phone"
-  },
-  {
    "fieldname": "time",
    "fieldtype": "Datetime",
    "label": "Time"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Signup\nForgot",
+   "read_only": 1
+  },
+  {
+   "fieldname": "phone_no",
+   "fieldtype": "Data",
+   "label": "Phone"
   }
  ],
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2023-11-10 16:11:28.857672",
+ "modified": "2023-11-15 18:38:07.355764",
  "modified_by": "Administrator",
  "module": "NotiBell",
  "name": "OTP Log",

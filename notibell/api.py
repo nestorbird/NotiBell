@@ -106,23 +106,25 @@ SOCAIL_MEDIA_PLATEFORM = {
     "2":"Apple"
 }
 @frappe.whitelist(allow_guest=True)
-def sign_up(data={}):
+def sign_up():
 
     try :
         if frappe.local.request.method != "POST":
             return "Only Post API"
-        body = frappe.local.request
-        frappe.local.response.data = data
+        
+        frappe.local.request
+        body =  frappe.local.form_dict
+        frappe.local.response.data
     except Exception as  e :
         print (e)
     
     if is_signup_disabled():
         frappe.throw(_("Sign Up is disabled"), title=_("Not Allowed"))
 
-    user = frappe.db.get("User", {"email": frappe.local.form_dict.get("email")})
+    user = frappe.db.get("User", {"email": body.get("email")})
     user_count = frappe.db.sql("""SELECT COUNT(*) from `tabUser` WHERE email = '{email}' OR mobile_no = '{mobile_no}'""".format(
-        email=frappe.local.form_dict.get("email"),
-        mobile_no=frappe.local.form_dict.get("phone_no") 
+        email=body.get("email"),
+        mobile_no=body.get("phone_no") 
         ))[0][0]
 
     if user_count > 0:
@@ -140,30 +142,30 @@ def sign_up(data={}):
 
         user = frappe.new_doc("User")
         user.update({
-            "email": frappe.local.form_dict.get("email"),
-            "first_name": frappe.local.form_dict.get("first_name"),
-            "last_name": frappe.local.form_dict.get("last_name"),
-            "full_name": frappe.local.form_dict.get("escape_html(full_name)"),
-            "gender": frappe.local.form_dict.get("gender"),
-            "birth_date": frappe.local.form_dict.get("birth_date"),
+            "email": body.get("email"),
+            "first_name": body.get("first_name"),
+            "last_name": body.get("last_name"),
+            "full_name": body.get("escape_html(full_name)"),
+            "gender": body.get("gender"),
+            "birth_date": body.get("birth_date"),
             "enabled": 1,
-            "new_password": frappe.local.form_dict.get("new_password " if "new_password " else random_string(10)),
+            "new_password": body.get("new_password " if "new_password " else random_string(10)),
             "user_type": "System User",
             "role_profile_name": "notibell role profile"
         })
 
         is_table_already_exists = 0
-        if frappe.local.form_dict.get("social_media_platform"):
-            if frappe.local.form_dict.get("social_media_guid"):
+        if body.get("social_media_platform"):
+            if body.get("social_media_guid"):
                 if user.get("social_logins"):
                     for media in user.get("social_logins"):
-                        if media.provider==SOCAIL_MEDIA_PLATEFORM[frappe.local.form_dict.get("social_media_platform")]:
-                            media.userid= frappe.local.form_dict.get("social_media_guid")
+                        if media.provider==SOCAIL_MEDIA_PLATEFORM[body.get("social_media_platform")]:
+                            media.userid= body.get("social_media_guid")
                             is_table_already_exists=1
                 if  not is_table_already_exists:
                     user.append("social_logins", {
-                        "provider": SOCAIL_MEDIA_PLATEFORM[frappe.local.form_dict.get("social_media_platform")],
-                        "userid": frappe.local.form_dict.get("social_media_guid")
+                        "provider": SOCAIL_MEDIA_PLATEFORM[body.get("social_media_platform")],
+                        "userid": body.get("social_media_guid")
                     })
                     user.is_social_login = 1
                     user.is_verified = 1
@@ -172,7 +174,7 @@ def sign_up(data={}):
                     user.flags.ignore_password_policy = True
                     user.send_welcome_email = False
                     user.save()
-
+                    create_employee(user, doc=None)
                     response = {
                         "is_social_login": 1,
                         "is_verified": 1
@@ -269,33 +271,33 @@ def send_otp(email, otp):
 
 # Function to handle OTP for Signup and Forgot scenarios
 @frappe.whitelist(allow_guest=True)
-def otp(data={}):
+def otp():
     try:
         if frappe.local.request.method != "POST":
             return "Only Post API"
         body = frappe.local.request
-        frappe.local.response.data = data
+        frappe.local.response.data
     except Exception as e:
         # Log the exception for better debugging
         frappe.log_error(f"Error in OTP function: {e}")
         return "An error occurred while processing your request."
 
-    otp_type = frappe.local.form_dict.get("type")
+    otp_type = body.get("type")
 
     if otp_type == "Signup":
-        user_exists = frappe.db.exists("User", {"email": frappe.local.form_dict.get("email")})
+        user_exists = frappe.db.exists("User", {"email": body.get("email")})
         if user_exists:
             return "Email already exists. Choose another email for sign-up."
 
     elif otp_type == "Forgot":
-        user_exists = frappe.db.exists("User", {"email": frappe.local.form_dict.get("email")})
+        user_exists = frappe.db.exists("User", {"email": body.get("email")})
         if not user_exists:
             return "Email not found. Enter a valid email for password recovery."
 
     resend_time = timedelta(minutes=2)
     last_otp_entry = frappe.get_all(
         "OTP Log",
-        filters={"email": frappe.local.form_dict.get("email"), "type": otp_type},
+        filters={"email": body.get("email"), "type": otp_type},
         fields=["name", "time"],
         order_by="creation DESC",
         limit=1
@@ -304,29 +306,29 @@ def otp(data={}):
     if last_otp_entry and datetime.now() - last_otp_entry[0]["time"] < resend_time:
         return "OTP already sent. Please wait before requesting again."
 
-    otp, time = resend_otp(email=frappe.local.form_dict.get("email"), type=otp_type)
-    send_otp(frappe.local.form_dict.get("email"), otp)
+    otp, time = resend_otp(email=body.get("email"), type=otp_type)
+    send_otp(body.get("email"), otp)
 
     return {
         "message": "OTP has been sent to your email account",
         "otp": otp,
         "type": otp_type,
-        "email": frappe.local.form_dict.get("email")
+        "email": body.get("email")
     }
 
 # Function to verify OTP and set a new password
 @frappe.whitelist(allow_guest=True)
-def verify_otp(data={}):
+def verify_otp():
     try:
         if frappe.local.request.method != "POST":
             return "Only Post API"
         body = frappe.local.request
-        frappe.local.response.data = data
+        frappe.local.response.data
     except Exception as e:
         frappe.log_error(f"Error in verify_otp function: {e}")
         return "An error occurred while processing your request."
 
-    otp_type = frappe.local.form_dict.get("type")
+    otp_type = body.get("type")
 
     # Check if required fields are present based on otp_type
     if otp_type == "Signup":
@@ -336,23 +338,23 @@ def verify_otp(data={}):
     else:
         return "Invalid request type."
 
-    if not all(frappe.local.form_dict.get(field) for field in required_fields):
+    if not all(body.get(field) for field in required_fields):
         return f"Required fields ({', '.join(required_fields)}) are missing for verification."
 
     # Get the latest OTP entry for the given email and type
     otp_entry = frappe.get_all(
         "OTP Log",
-        filters={"email": frappe.local.form_dict.get("email"), "type": otp_type},
+        filters={"email": body.get("email"), "type": otp_type},
         fields=["name", "otp"],
         order_by="creation DESC",
         limit=1
     )
 
-    if otp_entry and otp_entry[0]["otp"] == frappe.local.form_dict.get("otp"):
+    if otp_entry and otp_entry[0]["otp"] == body.get("otp"):
         if otp_type == "Forgot":
             # Only update the password if the type is "Forgot"
-            user = frappe.get_doc("User", {"email": frappe.local.form_dict.get("email")})
-            user.set("new_password", frappe.local.form_dict.get("new_password"))
+            user = frappe.get_doc("User", {"email": body.get("email")})
+            user.set("new_password", body.get("new_password"))
             user.save(ignore_permissions=True)
             frappe.db.commit()
 
@@ -372,7 +374,7 @@ def verify_otp(data={}):
 
 
 
-
+#no need to
 @frappe.whitelist(allow_guest=True)
 def login(email=None, password=None, social_media_guid=None, social_media_platform=None):
     try:

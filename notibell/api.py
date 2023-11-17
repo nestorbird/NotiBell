@@ -94,7 +94,6 @@ def permitted_workflow_action():
 
 
 
-# email, full_name, first_name, last_name, gender, birth_date, social_media_guid=None, social_media_platform=None, phone_no=None, new_password=None
 from frappe.website.utils import is_signup_disabled
 import frappe.permissions
 from frappe.utils import (escape_html)
@@ -205,7 +204,7 @@ def sign_up(data={}):
 
 def create_employee(user, doc):
     try:
-        print(user)
+ 
         employee = frappe.new_doc('Employee')
         employee.update({
             "full_name": user.full_name,

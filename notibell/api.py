@@ -105,108 +105,109 @@ SOCAIL_MEDIA_PLATEFORM = {
     "1":"Google",
     "2":"Apple"
 }
+# @frappe.whitelist(allow_guest=True)
 @frappe.whitelist(allow_guest=True)
 def sign_up():
-
-    try :
+    try:
         if frappe.local.request.method != "POST":
-            return "Only Post API"
-        
-        frappe.local.request
-        body =  frappe.local.form_dict
-        frappe.local.response.data
-    except Exception as  e :
-        print (e)
-    
-    if is_signup_disabled():
-        frappe.throw(_("Sign Up is disabled"), title=_("Not Allowed"))
+            return {
+                'status_code': 405,
+                'message': 'Only POST requests are allowed'
+            }
+        body = frappe.local.form_dict
+        if is_signup_disabled():
+            return {
+                'status_code': 403,
+                'message': 'Sign Up is disabled'
+            }
+      
+        user_count = frappe.db.sql("""SELECT  COUNT(*) FROM `tabUser` WHERE email = '{email}' OR mobile_no = '{mobile_no}'""".format(
+            email=body.get("email"),
+            mobile_no=body.get("phone_no")
+            ))[0][0]
+        print(user_count)
+        if user_count > 0:
+            return {
+                "status_code" : 409,
+                "message" : f"User already exists with this email  or phone number"
+                }
+        else:
+            if frappe.db.get_creation_count("User", 60) > 300:
+                return {
+                    'status_code': 429,
+                    'message' : 'Temporarily Disabled',
+                    'details' : 'Too many users signed up recently. Registration is disabled. Please try again later.'
+                }
 
-    user = frappe.db.get("User", {"email": body.get("email")})
-    user_count = frappe.db.sql("""SELECT COUNT(*) from `tabUser` WHERE email = '{email}' OR mobile_no = '{mobile_no}'""".format(
-        email=body.get("email"),
-        mobile_no=body.get("phone_no") 
-        ))[0][0]
+            user = frappe.new_doc("User")
+            user.update({
+                "email": body.get("email"),
+                "first_name": body.get("first_name"),
+                "last_name": body.get("last_name"),
+                "full_name": frappe.utils.escape_html(body.get("full_name")),
+                "gender": body.get("gender"),
+                "birth_date": body.get("birth_date"),
+                "enabled": 1,
+                "new_password": body.get("new_password", random_string(10)),
+                "user_type": "System User",
+                "role_profile_name": "notibell role profile"
+            })
 
-    if user_count > 0:
-        return {
-            'status_code': 200,
-            'message': 'User already exists with this email or phone number'
-        }
-    else:
-        if frappe.db.get_creation_count("User", 60) > 300:
-            frappe.respond_as_web_page(
-                _("Temporarily Disabled"),
-                _("Too many users signed up recently, so the registration is disabled. Please try back in an hour"),
-                http_status_code=429,
-            )
+            is_table_already_exists = 0
+            if body.get("social_media_platform"):
+                if body.get("social_media_guid"):
+                    if user.get("social_logins"):
+                        for media in user.get("social_logins"):
+                            if media.provider == SOCAIL_MEDIA_PLATEFORM[body.get("social_media_platform")]:
+                                media.userid = body.get("social_media_guid")
+                                is_table_already_exists = 1
+                    if not is_table_already_exists:
+                        user.append("social_logins", {
+                            "provider": SOCAIL_MEDIA_PLATEFORM[body.get("social_media_platform")],
+                            "userid": body.get("social_media_guid")
+                        })
+                        user.is_social_login = 1
+                        user.is_verified = 1
+                        user.new_password = "Qwerty@1234"
+                        user.flags.ignore_permissions = True
+                        user.flags.ignore_password_policy = True
+                        user.send_welcome_email = False
+                        user.save()
+                        create_employee(user, doc=None)
+                    
 
-        user = frappe.new_doc("User")
-        user.update({
-            "email": body.get("email"),
-            "first_name": body.get("first_name"),
-            "last_name": body.get("last_name"),
-            "full_name": body.get("escape_html(full_name)"),
-            "gender": body.get("gender"),
-            "birth_date": body.get("birth_date"),
-            "enabled": 1,
-            "new_password": body.get("new_password " if "new_password " else random_string(10)),
-            "user_type": "System User",
-            "role_profile_name": "notibell role profile"
-        })
-
-        is_table_already_exists = 0
-        if body.get("social_media_platform"):
-            if body.get("social_media_guid"):
-                if user.get("social_logins"):
-                    for media in user.get("social_logins"):
-                        if media.provider==SOCAIL_MEDIA_PLATEFORM[body.get("social_media_platform")]:
-                            media.userid= body.get("social_media_guid")
-                            is_table_already_exists=1
-                if  not is_table_already_exists:
-                    user.append("social_logins", {
-                        "provider": SOCAIL_MEDIA_PLATEFORM[body.get("social_media_platform")],
-                        "userid": body.get("social_media_guid")
-                    })
-                    user.is_social_login = 1
-                    user.is_verified = 1
-                    user.new_password = "Qwerty@1234"
-                    user.flags.ignore_permissions = True
-                    user.flags.ignore_password_policy = True
-                    user.send_welcome_email = False
-                    user.save()
-                    create_employee(user, doc=None)
-                    response = {
-                        "is_social_login": 1,
-                        "is_verified": 1
-                    }
-
-                    return {"status_code": 200, "message": "User signup successful", "response": response}
+                        return {"status_code": 200, "message": "User signup successful"}
+                    else:
+                        return {"status_code": 400, "message": "Please provide the social media GUID"}
                 else:
                     return {"status_code": 400, "message": "Please provide the social media GUID"}
             else:
-                return {"status_code": 400, "message": "Please provide the social media GUID"}
-        else:
-            user.flags.ignore_permissions = True
-            user.flags.ignore_password_policy = True
-            user.insert()
-            create_employee(user, doc=None)
-            default_role = frappe.db.get_single_value("Portal Settings", "default_role")
+                user.flags.ignore_permissions = True
+                user.flags.ignore_password_policy = True
+                user.insert()
+                create_employee(user, doc=None)
+                default_role = frappe.db.get_single_value("Portal Settings", "default_role")
 
-            if default_role:
-                user.add_roles(default_role)
+                if default_role:
+                    user.add_roles(default_role)
 
-            if user.flags.email_sent:
-                return {
-                    'status_code': 200,
-                    'message': 'User registered successfully'
-                }
-            else:
-                return {"status_code": 2, "message": _("Please ask your administrator to verify your sign-up")}
+                if user.flags.email_sent:
+                    return {
+                        'status_code': 200,
+                        'message': 'User registered successfully'
+                    }
+                else:
+                    return {"status_code": 2, "message": _("Please ask your administrator to verify your sign-up")}
+
+    except Exception as e:
+        return {
+            'status_code': 500,
+            'message': 'Requird Fields Are Missing'
+        }
 
 
 def create_employee(user, doc):
     try:
- 
         employee = frappe.new_doc('Employee')
         employee.update({
             "full_name": user.full_name,
@@ -217,218 +218,21 @@ def create_employee(user, doc):
             "date_of_joining": frappe.utils.now_datetime(),
             "user_id": user.email,
             "company_email": user.email
-            
-          
         })
         employee.flags.ignore_mandatory = True
         employee.insert(ignore_permissions=True)
 
-        print(f"Employee {employee.employee_name} created successfully.")
-
+        return {
+                'status_code': 200,
+                'message': 'Employee registered successfully'
+                }
     except Exception as e:
         print(f"Error creating employee: {str(e)}")
 
 
 
 
-# Function to generate OTP with timestamp
-def resend_otp(email=None, type=None, length=6, phone_no=None):
-    otp_value = random.randint(10**(length-1), (10**length)-1)
-    otp_value = otp_value % 10000
-    time = frappe.utils.now()
-
-    frappe.msgprint(f"DEBUG: type={type}")  # For debugging
-
-    # Create and insert OTP Log document
-    otp_log = frappe.get_doc({
-        "doctype": "OTP Log",
-        "otp": otp_value,
-        "email": email,
-        "time": time,
-        "phone_no": phone_no,
-        "type": type
-    })
-
-    try:
-        otp_log.insert(ignore_permissions=True)
-        frappe.db.commit()
-    except Exception as e:
-        frappe.log_error(f"Error inserting OTP Log: {str(e)}")
-        return "Error saving OTP Log."
-
-    return otp_value, time
-
-# Function to send OTP via email
-def send_otp(email, otp):
-    frappe.sendmail(
-        recipients=[email],
-        subject="OTP Confirmation",
-        message=f"Your OTP is: {otp}",
-        delayed=False,
-        header=["OTP Confirmation", "orange"]
-    )
-    frappe.clear_messages()
-    
-    
-    
-    
-    
-
-# Function to handle OTP for Signup and Forgot scenarios
-@frappe.whitelist(allow_guest=True)
-def otp():
-    try:
-        if frappe.local.request.method != "POST":
-            return "Only Post API"
-        frappe.local.request
-        body =  frappe.local.form_dict
-    except Exception as e:
-        # Log the exception for better debugging
-        frappe.log_error(f"Error in OTP function: {e}")
-        return "An error occurred while processing your request."
-
-    otp_type = body.get("type")
-
-    if otp_type == "Signup":
-        user_exists = frappe.db.exists("User", {"email": body.get("email")})
-        if user_exists:
-            return "Email already exists. Choose another email for sign-up."
-
-    elif otp_type == "Forgot":
-        user_exists = frappe.db.exists("User", {"email": body.get("email")})
-        if not user_exists:
-            return "Email not found. Enter a valid email for password recovery."
-
-    resend_time = timedelta(minutes=2)
-    last_otp_entry = frappe.get_all(
-        "OTP Log",
-        filters={"email": body.get("email"), "type": otp_type},
-        fields=["name", "time"],
-        order_by="creation DESC",
-        limit=1
-    )
-
-    if last_otp_entry and datetime.now() - last_otp_entry[0]["time"] < resend_time:
-        return "OTP already sent. Please wait before requesting again."
-
-    otp, time = resend_otp(email=body.get("email"), type=otp_type)
-    send_otp(body.get("email"), otp)
-
-    return {
-        "message": "OTP has been sent to your email account",
-        "otp": otp,
-        "type": otp_type,
-        "email": body.get("email")
-    }
-
-
-
-# Function to verify OTP and set a new password
-@frappe.whitelist(allow_guest=True)
-def verify_otp():
-    try:
-        if frappe.local.request.method != "POST":
-            return "Only Post API"
-        frappe.local.request
-        body =  frappe.local.form_dict
-    except Exception as e:
-        frappe.log_error(f"Error in verify_otp function: {e}")
-        return "An error occurred while processing your request."
-
-    otp_type = body.get("type")
-
-    # Check if required fields are present based on otp_type
-    if otp_type == "Signup":
-        required_fields = ["email", "otp", "type"]
-    elif otp_type == "Forgot":
-        required_fields = ["email", "new_password", "otp", "type"]
-    else:
-        return "Invalid request type."
-
-    if not all(body.get(field) for field in required_fields):
-        return f"Required fields ({', '.join(required_fields)}) are missing for verification."
-
-    # Get the latest OTP entry for the given email and type
-    otp_entry = frappe.get_all(
-        "OTP Log",
-        filters={"email": body.get("email"), "type": otp_type},
-        fields=["name", "otp"],
-        order_by="creation DESC",
-        limit=1
-    )
-
-    if otp_entry and otp_entry[0]["otp"] == body.get("otp"):
-        if otp_type == "Forgot":
-            # Only update the password if the type is "Forgot"
-            user = frappe.get_doc("User", {"email": body.get("email")})
-            user.set("new_password", body.get("new_password"))
-            user.save(ignore_permissions=True)
-            frappe.db.commit()
-
-            return "Password successfully updated."
-        elif otp_type == "Signup":
-            return "Signup verification successful."
-        else:
-            return "Invalid request type."
-    else:
-        return "Invalid OTP. Please try again."
 
 
 
 
-
-
-
-
-
-#no need to
-@frappe.whitelist(allow_guest=True)
-def login(email=None, password=None, social_media_guid=None, social_media_platform=None):
-    try:
-        if email and password:
-            # Email/password login
-            user = frappe.get_doc("User", {"email": email})
-            if user and user.check_password(password):
-                return {
-                    'status_code': 200,
-                    'message': 'Email/password login successful',
-                    'user_id': user.name
-                }
-            else:
-                return {
-                    'status_code': 401,
-                    'message': 'Invalid email/password'
-                }
-        elif social_media_guid and social_media_platform:
-            # Social media login
-            user = frappe.get_doc({
-                "doctype": "User",
-                "social_logins": [{
-                    "provider": SOCAIL_MEDIA_PLATEFORM.get(social_media_platform),
-                    "userid": social_media_guid
-                }]
-            })
-
-            if user:
-                return {
-                    'status_code': 200,
-                    'message': 'Social media login successful',
-                    'user_id': user.name
-                }
-            else:
-                return {
-                    'status_code': 401,
-                    'message': 'Invalid social media login credentials'
-                }
-        else:
-            return {
-                'status_code': 400,
-                'message': 'Invalid request. Provide email/password or social media login credentials.'
-            }
-
-    except Exception as e:
-        print(f"Error during login: {str(e)}")
-        return {
-            'status_code': 500,
-            'message': 'Internal server error during login'
-        }

@@ -268,6 +268,11 @@ def send_otp(email, otp):
         header=["OTP Confirmation", "orange"]
     )
     frappe.clear_messages()
+    
+    
+    
+    
+    
 
 # Function to handle OTP for Signup and Forgot scenarios
 @frappe.whitelist(allow_guest=True)
@@ -275,8 +280,8 @@ def otp():
     try:
         if frappe.local.request.method != "POST":
             return "Only Post API"
-        body = frappe.local.request
-        frappe.local.response.data
+        frappe.local.request
+        body =  frappe.local.form_dict
     except Exception as e:
         # Log the exception for better debugging
         frappe.log_error(f"Error in OTP function: {e}")
@@ -316,14 +321,16 @@ def otp():
         "email": body.get("email")
     }
 
+
+
 # Function to verify OTP and set a new password
 @frappe.whitelist(allow_guest=True)
 def verify_otp():
     try:
         if frappe.local.request.method != "POST":
             return "Only Post API"
-        body = frappe.local.request
-        frappe.local.response.data
+        frappe.local.request
+        body =  frappe.local.form_dict
     except Exception as e:
         frappe.log_error(f"Error in verify_otp function: {e}")
         return "An error occurred while processing your request."

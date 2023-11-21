@@ -2,7 +2,7 @@ import frappe
 import random
 from frappe import _
 from frappe.model.document import Document
-
+from datetime import datetime, timedelta
 import frappe.exceptions
 
 # @frappe.whitelist(allow_guest=True)
@@ -85,129 +85,195 @@ def permitted_workflow_action():
                     AND WF.document_type = "{entry["reference_doctype"]}"
                     AND WT.allowed in ({', '.join(f'"{element}"' for element in permitted_action[j]["roles"])})
                     AND WT.state = "{doc_entry.workflow_state}"; """
-
             workflow_transition = frappe.db.sql(workflow_trasition_qry, as_dict=True)
-
             permitted_action[j]["workflow_transition"] = workflow_transition
-
-        # frappe.db.sql(workflow_trasition_qry)
         return permitted_action
     except Exception as e:
         print(e)
 
 
 
+
 from frappe.website.utils import is_signup_disabled
-from datetime import timedelta
-from urllib import response
-import frappe
-import frappe.defaults
 import frappe.permissions
-import frappe.share
-from frappe import STANDARD_USERS, _, msgprint, throw
-from frappe.core.doctype.user_type.user_type import user_linked_with_permission_on_doctype
-from frappe.desk.doctype.notification_settings.notification_settings import (
-	create_notification_settings,
-	toggle_notifications,
-)
-from frappe.desk.notifications import clear_notifications
-from frappe.model.document import Document
-from frappe.query_builder import DocType
-from frappe.rate_limiter import rate_limit
-from frappe.utils import (
-	cint,
-	escape_html,
-	flt,
-	format_datetime,
-	get_formatted_email,
-	get_system_timezone,
-	has_gravatar,
-	now_datetime,
-	today,
-)
-from frappe.utils.deprecations import deprecated
-from frappe.utils.password import check_password, get_password_reset_limit
-from frappe.utils.password import update_password as _update_password
-from frappe.utils.user import get_system_managers
+from frappe.utils import (escape_html)
 from frappe.utils import escape_html, random_string
 import frappe
 from frappe import _
-from frappe.utils import escape_html, random_string
 
+# Function to generate OTP with timestamp
+def resend_otp(email, type, length=6, phone_no=None):
+    otp_value = random.randint(10**(length-1), (10**length)-1)
+    otp_value = otp_value % 10000
+    time = frappe.utils.now()
+
+    frappe.msgprint(f"DEBUG: type={type}")  # For debugging
+
+    # Create and insert OTP Log document
+    otp_log = frappe.get_doc({
+        "doctype": "OTP Log",
+        "otp": otp_value,
+        "email": email,
+        "time": time,
+        "phone_no": phone_no,
+        "type": type
+    })
+
+    try:
+        otp_log.insert(ignore_permissions=True)
+        frappe.db.commit()
+    except Exception as e:
+        frappe.log_error(f"Error inserting OTP Log: {str(e)}")
+        return "Error saving OTP Log."
+
+    return otp_value, time
+
+# Function to send OTP via email
+def send_otp(email, otp):
+    frappe.sendmail(
+        recipients=[email],
+        subject="OTP Confirmation",
+        message=f"Your OTP is: {otp}",
+        delayed=False,
+        header=["OTP Confirmation", "orange"]
+    )
+    frappe.clear_messages()
+    
+    
+    
+    
+    
+
+# Constants
+SIGNUP_OTP_TYPE = "Signup"
+FORGOT_OTP_TYPE = "Forgot"
+
+# Function to handle OTP for Signup and Forgot scenarios
 @frappe.whitelist(allow_guest=True)
-def sign_up(email, full_name, first_name, last_name, gender, birth_date,phone_no=None, new_password=None):
-    print(email, full_name, first_name, last_name, gender, birth_date)
-    if is_signup_disabled():
-        frappe.throw(_("Sign Up is disabled"), title=_("Not Allowed"))
+def otp():
+    try:
+        if frappe.local.request.method != "POST":
+            return {
+                'status_code': 405,
+                'message': 'Only POST requests are allowed'
+            }
+        body = frappe.local.form_dict
+        email = body.get("email")
+        otp_type = body.get("type")
 
-    user = frappe.db.get("User", {"email": email})
-    user = frappe.db.sql("""SELECT COUNT(*) from `tabUser` WHERE email = '{email}' OR mobile_no = '{mobile_no}'""".format(
-    email = email,
-    mobile_no = phone_no
-    ))
-    if user[0][0] > 0:
+        # Check if 'email' and 'type' are present in the request
+        if not email or not otp_type:
+            return {
+                'status_code': 400,
+                'message': 'Email and OTP type are required in the request'
+            }
+        if otp_type == SIGNUP_OTP_TYPE and frappe.db.exists("User", {"email": email}):
+            return {
+                "status_code": 409,
+                "message": "Email already exists. Choose another email for sign-up."
+            }
+
+        elif otp_type == FORGOT_OTP_TYPE and not frappe.db.exists("User", {"email": email}):
+            return {
+                "status_code": 404,
+                "message": "Email not found. Enter a valid email for password recovery."
+            }
+
+        resend_time = timedelta(minutes=2)
+        print("toxic", resend_time)
+        last_otp_entry = frappe.get_all(
+            "OTP Log",
+            filters={"email": email, "type": otp_type},
+            fields=["name", "time"],
+            order_by="creation DESC",
+            limit=1
+        )
+        if last_otp_entry and datetime.now() - last_otp_entry[0]["time"] < resend_time:
+            return {
+                'status_code': 429,
+                'message': 'OTP already sent. Please wait before requesting again.'
+                }
+
+        otp, time = resend_otp(email=email, type=otp_type)
+        send_otp(email, otp)
+
         return {
-            'status_code': 200,
-            'message': 'User already exist with this email or phone number'
-            }
-    else:
-        if frappe.db.get_creation_count("User", 60) > 300:
-            frappe.respond_as_web_page(
-                _("Temporarily Disabled"),
-                _(
-                    "Too many users signed up recently, so the registration is disabled. Please try back in an hour"
-                ),
-                http_status_code=429,
-            )
+            "status_code": 200,
+            "message": "OTP has been sent to your email account",
+            "otp": otp,
+            "type": otp_type,
+            "email": email
+        }
 
-        user = frappe.get_doc(
-            {
-                "doctype": "User",
-                "email": email,
-                "first_name": first_name,
-                "last_name": last_name,
-                "full_name": escape_html(full_name),
-                "gender": gender,
-                "birth_date": birth_date,
-                "enabled": 1,
-                "new_password": new_password if new_password else random_string(10),
-                "user_type": "System User",
-                "role_profile_name": "notibell role profile"
-            }
+    except Exception as e:
+        # Log the exception for better debugging
+        frappe.log_error(f"Error in OTP function: {e}", title="OTP Function Error")
+        return {
+            'status_code': 500,
+            'message': 'An error occurred while processing your request.'
+        }
+
+
+
+
+# Function to verify OTP and set a new password
+@frappe.whitelist(allow_guest=True)
+def verify_otp():
+    try:
+        # Check if the request method is POST
+        if frappe.local.request.method != "POST":
+            return "Only POST requests are allowed."
+
+        # Get the request body
+        body = frappe.local.form_dict
+
+        # Validate the request body
+        if not body:
+            return "Request body is empty."
+
+        otp_type = body.get("type")
+
+        if otp_type == "Signup":
+            required_fields = ["email", "otp", "type"]
+        elif otp_type == "Forgot":
+            required_fields = ["email", "new_password", "otp", "type"]
+        else:
+            return "Invalid request type."
+
+        if not all(body.get(field) for field in required_fields):
+            return f"Required fields ({', '.join(required_fields)}) are missing for verification."
+
+        # Get the latest OTP entry for the given email and type
+        otp_entry = frappe.get_all(
+            "OTP Log",
+            filters={"email": body.get("email"), "type": otp_type},
+            fields=["name", "otp"],
+            order_by="creation DESC",
+            limit=1
         )
 
-        user.flags.ignore_permissions = True
-        user.flags.ignore_password_policy = True
-        user.insert()
-        create_employe(user, doc=None)
-        default_role = frappe.db.get_single_value("Portal Settings", "default_role")
-        if default_role:
-            user.add_roles(default_role)
+        if otp_entry and otp_entry[0]["otp"] == body.get("otp"):
+            if otp_type == "Forgot":
+                # Only update the password if the type is "Forgot"
+                user = frappe.get_doc("User", {"email": body.get("email")})
+                user.set("new_password", body.get("new_password"))
+                user.save(ignore_permissions=True)
+                frappe.db.commit()
 
-       
-        if user.flags.email_sent:
-            return {
-        'status_code': 200,
-        'message': 'User registered successfully'
-    }
+                return {
+                    "status_code": 200,
+                    "message": "Password successfully updated."
+                }
+            elif otp_type == "Signup":
+                return "Signup verification successful."
+            else:
+                return "Invalid request type."
         else:
-            return 2, _("Please ask your administrator to verify your sign-up")
+            return "Invalid OTP. Please try again."
 
-
-def create_employe(user, doc):
-    print(user)
-    employee = frappe.new_doc('Employee')
-
-    employee.full_name = user.full_name
-    employee.first_name = user.first_name
-    employee.last_name = user.last_name
-    employee.date_of_birth = user.birth_date
-    employee.gender = user.gender
-    employee.date_of_joining = frappe.utils.now_datetime()
-    employee.user_id = user.email
-
-    employee.flags.ignore_mandatory = True
-    employee.insert(ignore_permissions=True)
+    except Exception as e:
+        frappe.log_error(f"Error in verify_otp function: {e}")
+        return "An error occurred while processing your request."
 
 
 

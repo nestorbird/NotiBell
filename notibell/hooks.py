@@ -254,6 +254,17 @@ fixtures = [
                 ]
             ]
         }
+    },
+    {
+        "dt": "Role Profile",
+        "filters": {
+            "name":[
+                "in",
+                [
+                    "notibell role profile"
+                ]
+            ]
+    }
     }
 ]
 

@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2023-11-10 16:08:47.630005",
+ "default_view": "List",
+ "doctype": "DocType",
+ "document_type": "System",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "otp",
+  "email",
+  "phone_no",
+  "time",
+  "type"
+ ],
+ "fields": [
+  {
+   "fieldname": "otp",
+   "fieldtype": "Data",
+   "label": "OTP"
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email "
+  },
+  {
+   "fieldname": "time",
+   "fieldtype": "Datetime",
+   "label": "Time"
+  },
+  {
+   "fieldname": "type",
+   "fieldtype": "Select",
+   "label": "Type",
+   "options": "Signup\nForgot",
+   "read_only": 1
+  },
+  {
+   "fieldname": "phone_no",
+   "fieldtype": "Data",
+   "label": "Phone"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2023-11-15 18:38:07.355764",
+ "modified_by": "Administrator",
+ "module": "NotiBell",
+ "name": "OTP Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

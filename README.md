@@ -13,7 +13,7 @@ NotiBell is a Custom App build over Frappe that enables user to install NotiBell
 
 ### How to Install and Setup
 ```
-bench get-app https://github.com/nestorbird/NotiBell-Frappe.git --branch main
+bench get-app https://github.com/nestorbird/NotiBell.git --branch main
 bench --site <site_name> install-app notibell
 ```
 
